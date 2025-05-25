@@ -1,0 +1,15 @@
+on:
+  pull_request:
+    branches: ["develop"]
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Compliment"
+        run: echo "Such code much pErfomant Wow!1!!!"
+
+      - name: "Greet"
+        run: echo Well hello there!
