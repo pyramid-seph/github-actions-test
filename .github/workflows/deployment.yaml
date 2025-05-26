@@ -24,12 +24,12 @@ jobs:
           touch cool/index.html
           zip -r cool.zip cool
 
-          echo Installing Buttler
+          echo Installing Butler
           curl -sS -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip butler.zip
           chmod +x butler
           ./butler -V
 
-          echo Buttler installed!
+          echo Butler installed!
 
-          ./butler push cool.zip pyramid-seph/github_actions_test:web-stable
+          ./butler push cool.zip pyramid-seph/github-actions-test:html
