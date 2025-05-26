@@ -16,6 +16,17 @@ jobs:
       - name: "Greet"
         run: echo Well hello there!
       
+      - name: Build
+        run: |
+          mkdir cool
+          touch cool/index.html
+          zip -r cool.zip cool
+
+  deploy:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Install butler
         run: |
           echo Installing Butler
@@ -24,12 +35,9 @@ jobs:
           chmod +x butler
           ./butler -V
           echo Butler installed!
+
       - name: Deploy to Itch
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          mkdir cool
-          touch cool/index.html
-          zip -r cool.zip cool
-
           ./butler push cool.zip pyramid-seph/github-actions-test:html
