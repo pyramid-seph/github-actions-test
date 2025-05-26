@@ -1,25 +1,35 @@
 on:
+  pull_request:
+    branches: ["develop"]
   push:
-    branches: ["main"]
+    branches: ["develop"]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run a one line script
-        run: echo Hello, world!
+      - name: "Compliment"
+        run: echo "Such code much pErfomant Wow!1!!!"
+
+      - name: "Greet"
+        run: echo Well hello there!
       
-      - name: Run a multi-line script
+      - name: Install butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          echo Add other actions to build
-          echo test, and deploy your project
-      
-      - name: Upload to Itch
-        run: |
+          mkdir cool
+          touch cool/index.html
+          zip -r cool.zip cool
+
           echo Installing Buttler
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          curl -sS -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip butler.zip
           chmod +x butler
           ./butler -V
+
+          echo Buttler installed!
+
+          ./butler push cool.zip pyramid-seph/github_actions_test:web-stable

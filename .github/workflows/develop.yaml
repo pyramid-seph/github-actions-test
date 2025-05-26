@@ -17,6 +17,8 @@ jobs:
         run: echo Well hello there!
       
       - name: Install butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
           mkdir cool
           touch cool/index.html
@@ -30,5 +32,4 @@ jobs:
 
           echo Buttler installed!
 
-          export BUTLER_API_KEY="${{ secrets.BUTLER_API_KEY }}"
           ./butler push cool.zip pyramid-seph/github_actions_test:web-stable
