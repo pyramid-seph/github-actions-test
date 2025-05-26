@@ -30,4 +30,4 @@ jobs:
 
           echo Buttler installed!
 
-          butler push cool.zip pyramid-seph/github_actions_test
+          ./butler push cool.zip pyramid-seph/github_actions_test
