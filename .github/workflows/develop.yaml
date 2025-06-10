@@ -90,6 +90,7 @@ jobs:
                 -d ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.${{ env.GODOT_RELEASE_NAME }}
             rm -r Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz
           fi
+            ls -lia /home/runner/.local/share/godot/export_templates/4.4.1.stable
       
       - name: Download Godot
         env:
@@ -102,6 +103,7 @@ jobs:
 
       - name: Build and optimize for web
         run: |
+          ls -lia /home/runner/.local/share/godot/export_templates/4.4.1.stable
           mkdir -vp ${{ github.workspace }}/builds/web
           ./godot --headless --path ${{ github.workspace }}/main \
               --export-release "${{ env.EXPORT_PRESET_NAME }}" ${{ github.workspace }}/builds/web/index.html
