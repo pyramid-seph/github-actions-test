@@ -71,6 +71,7 @@ jobs:
           path: main
 
       - uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: export_templates
 
