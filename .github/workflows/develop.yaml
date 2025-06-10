@@ -87,11 +87,9 @@ jobs:
             echo Installing default export templates...
             wget -q https://github.com/godotengine/godot-builds/releases/download/${{ env.GODOT_RELEASE }}/Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz
             unzip -q Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz
-            ls -lia
             mv -v templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.${{ env.GODOT_RELEASE_NAME }}
             rm -r Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz
           fi
-            ls -lia /home/runner/.local/share/godot/export_templates/4.4.1.stable
       
       - name: Download Godot
         env:
@@ -132,7 +130,7 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          wget -q -o butler.zip https://broth.itch.ovh/butler/linux-amd64/${{ env.BUTLER_VERSION }}/archive/default
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/${{ env.BUTLER_VERSION }}/archive/default
           unzip -q butler.zip
           chmod +x butler
           zip -vr builds/web.zip builds/web
