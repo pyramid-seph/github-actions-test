@@ -87,7 +87,7 @@ jobs:
             echo Installing default export templates...
             wget -q https://github.com/godotengine/godot-builds/releases/download/${{ env.GODOT_RELEASE }}/Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz
             unzip -q Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz \
-                -d ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.${{ env.GODOT_RELEASE_NAME }}
+            mv -v templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.${{ env.GODOT_RELEASE_NAME }}
             rm -r Godot_v${{ env.GODOT_RELEASE }}_export_templates.tpz
           fi
             ls -lia /home/runner/.local/share/godot/export_templates/4.4.1.stable
