@@ -136,10 +136,5 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/${{ env.BUTLER_VERSION }}/archive/default
           unzip -q butler.zip
           chmod +x butler
-          ls -lia
-          echo "========================"
-          ls -lia builds
-          echo "========================"
-           ls -lia builds/web
-          zip -vr builds/web.zip builds/web
+          zip -vr web.zip web
           ./butler push web.zip ${{ env.ITCH_USER }}/${{ env.ITCH_PROJECT }}:html
