@@ -101,14 +101,12 @@ jobs:
           mv -v Godot_v${{ env.GODOT_RELEASE }}_linux.x86_64 godot
 
       - name: Build and optimize for web
-        timeout-minutes: 2
         run: |
           mkdir -vp ${{ github.workspace }}/builds/web
           ./godot --headless --path ${{ github.workspace }}/main \
               --export-release "${{ env.EXPORT_PRESET_NAME }}" ${{ github.workspace }}/builds/web/index.html
-          wasm-opt ${{ github.workspace }}/builds/web/index.wasm \
-              -o builds/web/optimized.wasm -all --post-emscripten -Oz
-        
+          
+          
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -121,7 +119,7 @@ jobs:
     env:
       BUTLER_VERSION: "15.24.0"
       ITCH_USER: "pyramid-seph"
-      ITCH_PROJECT: "bucho-busca-comida-portobello-ex"
+      ITCH_PROJECT: "github_actions_test"
     
     steps:
       - uses: actions/download-artifact@v4
