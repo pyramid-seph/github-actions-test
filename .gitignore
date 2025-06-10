@@ -4,11 +4,6 @@
 .godot/imported/
 .godot/editor/
 .import/
-export.cfg
-export_presets.cfg
-
-# Dummy HTML5 export presets file for continuous integration
-!.github/dist/export_presets.cfg
 
 # Imported translations (automatically generated from CSV files)
 *.translation

@@ -105,8 +105,9 @@ jobs:
           mkdir -vp ${{ github.workspace }}/builds/web
           ./godot --headless --path ${{ github.workspace }}/main \
               --export-release "${{ env.EXPORT_PRESET_NAME }}" ${{ github.workspace }}/builds/web/index.html
-          
-          
+          wasm-opt ${{ github.workspace }}/builds/web/index.wasm \
+              -o builds/web/optimized.wasm -all --post-emscripten -Oz
+        
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
