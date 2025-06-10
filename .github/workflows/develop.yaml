@@ -71,6 +71,8 @@ jobs:
           path: main
 
       - uses: actions/download-artifact@v4
+        with:
+          name: export_templates
 
       - name: Install dependencies
         run: sudo apt-get update -qq && sudo apt-get install -qq binaryen
@@ -126,6 +128,8 @@ jobs:
     
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          name: builds
 
       - name: Deploy to Itch
         env:
@@ -134,6 +138,5 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/${{ env.BUTLER_VERSION }}/archive/default
           unzip -q butler.zip
           chmod +x butler
-          unzip builds.zip
           zip -vr builds/web.zip builds/web
           ./butler push web.zip ${{ env.ITCH_USER }}/${{ env.ITCH_PROJECT }}:html
