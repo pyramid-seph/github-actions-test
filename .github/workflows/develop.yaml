@@ -59,7 +59,7 @@ jobs:
               build_profile=${{ env.BUILD_PROFILE_PATH }}
           mkdir -vp ../export_templates/
           mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
-              ../export_templates/web_release_nothreads.zip
+              ../export_templates/web_nothreads_release.zip
 
       - uses: actions/upload-artifact@v4
         with:
