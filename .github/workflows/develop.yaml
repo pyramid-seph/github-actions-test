@@ -18,58 +18,58 @@ env:
   GODOT_RELEASE_NAME: "stable"
 
 jobs:
-  compile-export-templates-web:
-    runs-on: "ubuntu-24.04"
-    env: 
-      EMSCRIPTEN_VERSION: "4.0.9"
-      BUILD_PROFILE_PATH: "${{ github.workspace }}/main/custom_profile.build"
+  # compile-export-templates-web:
+  #   runs-on: "ubuntu-24.04"
+  #   env: 
+  #     EMSCRIPTEN_VERSION: "4.0.9"
+  #     BUILD_PROFILE_PATH: "${{ github.workspace }}/main/custom_profile.build"
     
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: main
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         path: main
       
-      - uses: actions/checkout@v4
-        with:
-          repository: emscripten-core/emsdk
-          path: emsdk
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: emscripten-core/emsdk
+  #         path: emsdk
 
-      - uses: actions/checkout@v4
-        with:
-          repository: godotengine/godot
-          ref: ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE_NAME }}
-          path: godotengine
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: godotengine/godot
+  #         ref: ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE_NAME }}
+  #         path: godotengine
 
-      - name: Install SCons
-        run: sudo apt-get update -qq && sudo apt-get install -qq scons
+  #     - name: Install SCons
+  #       run: sudo apt-get update -qq && sudo apt-get install -qq scons
 
-      - name: Install emscripten
-        working-directory: emsdk
-        run: |
-          ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
-          ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }} --permanent
-          echo "${{ github.workspace }}/emsdk" >> "$GITHUB_PATH"
-          echo "${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+  #     - name: Install emscripten
+  #       working-directory: emsdk
+  #       run: |
+  #         ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
+  #         ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }} --permanent
+  #         echo "${{ github.workspace }}/emsdk" >> "$GITHUB_PATH"
+  #         echo "${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
-      - name: Compile custom web build template
-        working-directory: godotengine
-        run: |
-          scons platform=web target=template_release optimize=size use_volk=no \
-              tools=no deprecated=no threads=no \
-              build_profile=${{ env.BUILD_PROFILE_PATH }}
-          mkdir -vp ../export_templates/
-          mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
-              ../export_templates/web_nothreads_release.zip
+  #     - name: Compile custom web build template
+  #       working-directory: godotengine
+  #       run: |
+  #         scons platform=web target=template_release optimize=size use_volk=no \
+  #             tools=no deprecated=no threads=no \
+  #             build_profile=${{ env.BUILD_PROFILE_PATH }}
+  #         mkdir -vp ../export_templates/
+  #         mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
+  #             ../export_templates/web_nothreads_release.zip
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: export_templates
-          path: ${{ github.workspace }}/export_templates/
-          retention-days: 1
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: export_templates
+  #         path: ${{ github.workspace }}/export_templates/
+  #         retention-days: 1
 
   export-web:
     runs-on: "ubuntu-24.04"
-    needs: compile-export-templates-web
+    # needs: compile-export-templates-web
     env:
       BUTLER_VERSION: "15.24.0"
       EXPORT_PRESET_NAME: "Web"
