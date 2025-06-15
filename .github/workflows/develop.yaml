@@ -4,11 +4,6 @@ on:
   push:
     branches: ["main"]
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -18,19 +13,8 @@ env:
   GODOT_RELEASE_NAME: "stable"
 
 jobs:
-  extract-build-version:
-    runs-on: "ubuntu-24.04"
-    outputs:
-      version-name: ${{ steps.extract-godot-project-version.outputs.version-name }}
-    
-    steps:
-      - uses: actions/checkout@v4
-    
-      - id: extract-godot-project-version
-        run: awk -F= '/config\/version/ { gsub("\"", ""); print "version-name=" $2 }' project.godot >> $GITHUB_OUTPUT
-
-  
   # compile-export-templates-web:
+  #   name: Compile custom export template (web)
   #   runs-on: "ubuntu-24.04"
   #   env: 
   #     SCONS_VERSION: "4.9.0"
@@ -99,6 +83,7 @@ jobs:
   #         retention-days: 1
   
   export-web:
+    name: Build Godot project (web)
     runs-on: "ubuntu-24.04"
     # needs: compile-export-templates-web
     env:
@@ -159,7 +144,21 @@ jobs:
           path: ${{ github.workspace }}/builds/web/
           retention-days: 1
     
+  extract-build-version:
+    name: Extract version name
+    runs-on: "ubuntu-24.04"
+    needs: export-web
+    outputs:
+      version-name: ${{ steps.extract-godot-project-version.outputs.version-name }}
+    
+    steps:
+      - uses: actions/checkout@v4
+    
+      - id: extract-godot-project-version
+        run: awk -F= '/config\/version/ { gsub("\"", ""); print "version-name=" $2 }' project.godot >> $GITHUB_OUTPUT
+
   deploy-to-itch:
+    name: Deploy to Itch
     runs-on: ubuntu-24.04
     needs: [export-web, extract-build-version]
     env:
@@ -183,32 +182,38 @@ jobs:
           zip -vr web.zip web
           ./butler push web.zip ${{ env.ITCH_USER }}/${{ env.ITCH_PROJECT }}:html --userversion ${{ env.BUILD_NUMBER }}
 
-  # deploy-to-github-pages:
-  #   runs-on: ubuntu-24.04
-  #   needs: export-web
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
-  #   steps:
-  #     - name: Deploy to GitHub Pages
-  #       id: deployment
-  #       uses: actions/deploy-pages@v4
+  deploy-to-github-pages:
+    name: Deploy to Github Pages
+    runs-on: ubuntu-24.04
+    needs: [export-web, extract-build-version]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
 
-  # create-github-release:
-  #   runs-on: "ubuntu-24.04"
-  #   needs: [deploy-to-itch, extract-build-version]
-  #   env:
-  #      BUILD_NUMBER: ${{ needs.extract-build-version.outputs.version-name }}
+    steps:
+      - name: Setup Github Pages
+        uses: actions/configure-pages@v5
 
-  #   steps:
-  #     - uses: actions/checkout@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
-  #     - name: Create release
-  #       run: |
-  #         gh release create "${GITHUB_REF_NAME}" \
-  #           --title "${GITHUB_REF_NAME}" \
-  #           --notes "Release ${GITHUB_REF_NAME}" \
-  #           --target "${GITHUB_SHA}" \
-  #           --prerelease \
-  #           --draft
+  create-github-release:
+    name: Create Github release 
+    runs-on: "ubuntu-24.04"
+    needs: [deploy-to-itch, deploy-to-github-pages, extract-build-version]
+    permissions:
+      contents: write
 
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.extract-build-version.outputs.version-name }}
+          generate_release_notes: true
+          make_latest: true
