@@ -18,58 +18,98 @@ env:
   GODOT_RELEASE_NAME: "stable"
 
 jobs:
-  # compile-export-templates-web:
-  #   runs-on: "ubuntu-24.04"
-  #   env: 
-  #     EMSCRIPTEN_VERSION: "4.0.9"
-  #     BUILD_PROFILE_PATH: "${{ github.workspace }}/main/custom_profile.build"
+  extract-build-version:
+    runs-on: "ubuntu-24.04"
+    outputs:
+      version-name: ${{ steps.extract-godot-project-version.outputs.version-name }}
     
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         path: main
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: main
+    
+      - id: extract-godot-project-version
+        run: |
+          cat main/project.godot | \
+            grep "config/version" | \
+            awk -F '[=]' '{print $2}' | \
+            tr -d '"' >> version.txt
+          echo "version-name=$(cat version.txt)" >> "$GITHUB_OUTPUT"
+          echo "Successfully extracted this version from project.godot: $(cat version.txt)"
+
+  
+  compile-export-templates-web:
+    runs-on: "ubuntu-24.04"
+    needs: extract-build-version
+    env: 
+      SCONS_VERSION: "4.9.0"
+      EMSCRIPTEN_VERSION: "3.1.64"
+      BUILD_PROFILE_PATH: "${{ github.workspace }}/main/custom_profile.build"
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: main
       
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         repository: emscripten-core/emsdk
-  #         path: emsdk
+      - uses: actions/checkout@v4
+        with:
+          repository: emscripten-core/emsdk
+          path: emsdk
 
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         repository: godotengine/godot
-  #         ref: ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE_NAME }}
-  #         path: godotengine
+      - uses: actions/checkout@v4
+        with:
+          repository: godotengine/godot
+          ref: ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE_NAME }}
+          path: godotengine
 
-  #     - name: Install SCons
-  #       run: sudo apt-get update -qq && sudo apt-get install -qq scons
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.10"
+          cache: "pip"
 
-  #     - name: Install emscripten
-  #       working-directory: emsdk
-  #       run: |
-  #         ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
-  #         ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }} --permanent
-  #         echo "${{ github.workspace }}/emsdk" >> "$GITHUB_PATH"
-  #         echo "${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+      - name: Install SCons
+        run: |
+          pip install scons==${{ env.SCONS_VERSION }}
+          scons --version
 
-  #     - name: Compile custom web build template
-  #       working-directory: godotengine
-  #       run: |
-  #         scons platform=web target=template_release optimize=size use_volk=no \
-  #             tools=no deprecated=no threads=no \
-  #             build_profile=${{ env.BUILD_PROFILE_PATH }}
-  #         mkdir -vp ../export_templates/
-  #         mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
-  #             ../export_templates/web_nothreads_release.zip
+      - name: Install emscripten
+        working-directory: emsdk
+        env:
+           EMSDK_VERBOSE: 0 
+        run: |
+          ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
+          ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }} --permanent
+          echo "${{ github.workspace }}/emsdk" >> "$GITHUB_PATH"
+          echo "${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
-  #     - uses: actions/upload-artifact@v4
-  #       with:
-  #         name: export_templates
-  #         path: ${{ github.workspace }}/export_templates/
-  #         retention-days: 1
+      - name: Compile custom web build template
+        working-directory: godotengine
+        run: |
+          scons platform=web \
+              target=template_release\
+              optimize=size\
+              use_volk=no\
+              use_closure_compiler=yes \
+              tools=no \
+              deprecated=no \
+              threads=no \
+              redirect_build_objects=no \
+              tests=no \
+              debug_symbols=no \
+              build_profile=${{ env.BUILD_PROFILE_PATH }}
+          mkdir -vp ../export_templates/
+          mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
+              ../export_templates/web_nothreads_release.zip
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: export_templates
+          path: ${{ github.workspace }}/export_templates/
+          retention-days: 1
+  
   export-web:
     runs-on: "ubuntu-24.04"
-    # needs: compile-export-templates-web
+    needs: compile-export-templates-web
     env:
       BUTLER_VERSION: "15.24.0"
       EXPORT_PRESET_NAME: "Web"
@@ -80,9 +120,6 @@ jobs:
           path: main
 
       - uses: actions/download-artifact@v4
-
-      - name: Install dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -qq binaryen
       
       - name: Install export templates
         env:
@@ -108,15 +145,14 @@ jobs:
           unzip -q Godot_v${{ env.GODOT_RELEASE }}_linux.x86_64.zip
           rm Godot_v${{ env.GODOT_RELEASE }}_linux.x86_64.zip
           mv -v Godot_v${{ env.GODOT_RELEASE }}_linux.x86_64 godot
-
-      - name: Build and optimize for web
+          ./godot -v --editor --quit --headless
+      
+      - name: Build for web
         run: |
-          ls -lia /home/runner/.local/share/godot/export_templates/4.4.1.stable
           mkdir -vp ${{ github.workspace }}/builds/web
           ./godot --headless --path ${{ github.workspace }}/main \
-              --export-release "${{ env.EXPORT_PRESET_NAME }}" ${{ github.workspace }}/builds/web/index.html
-          wasm-opt ${{ github.workspace }}/builds/web/index.wasm \
-              -o builds/web/optimized.wasm -all --post-emscripten -Oz
+            --export-release "${{ env.EXPORT_PRESET_NAME }}" ${{ github.workspace }}/builds/web/index.html
+          echo "Success compiling a new web build"
         
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -124,8 +160,8 @@ jobs:
           name: builds
           path: ${{ github.workspace }}/builds
           retention-days: 1
-      
-      - name: Upload an artifact suitable for Github Pages
+
+      - name: Upload artifact for Github Pages
         id: deployment
         uses: actions/upload-pages-artifact@v3
         with:
@@ -134,11 +170,12 @@ jobs:
     
   deploy-to-itch:
     runs-on: ubuntu-24.04
-    needs: export-web
+    needs: [export-web, extract-build-version]
     env:
       BUTLER_VERSION: "15.24.0"
       ITCH_USER: "pyramid-seph"
-      ITCH_PROJECT: "github-actions-test"
+      ITCH_PROJECT: "bucho-busca-comida-portobello-ex"
+      BUILD_NUMBER: ${{ needs.extract-build-version.outputs.version-name }}
     
     steps:
       - uses: actions/download-artifact@v4
@@ -149,12 +186,12 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/${{ env.BUTLER_VERSION }}/archive/default
+          curl -q -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/${{ env.BUTLER_VERSION }}/archive/default
           unzip -q butler.zip
           chmod +x butler
           zip -vr web.zip web
-          ./butler push web.zip ${{ env.ITCH_USER }}/${{ env.ITCH_PROJECT }}:html
-  
+          ./butler push web.zip ${{ env.ITCH_USER }}/${{ env.ITCH_PROJECT }}:html --userversion ${{ env.BUILD_NUMBER }}
+
   deploy-to-github-pages:
     runs-on: ubuntu-24.04
     needs: export-web
@@ -165,3 +202,22 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # create-github-release:
+  #   runs-on: "ubuntu-24.04"
+  #   needs: [deploy-to-itch, deploy-to-github-pages, extract-build-version]
+  #   env:
+  #      BUILD_NUMBER: ${{ needs.extract-build-version.outputs.version-name }}
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Create release
+  #       run: |
+  #         gh release create "${GITHUB_REF_NAME}" \
+  #           --title "${GITHUB_REF_NAME}" \
+  #           --notes "Release ${GITHUB_REF_NAME}" \
+  #           --target "${GITHUB_SHA}" \
+  #           --prerelease \
+  #           --draft
+
