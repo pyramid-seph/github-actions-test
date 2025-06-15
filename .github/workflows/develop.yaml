@@ -25,91 +25,82 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: main
     
       - id: extract-godot-project-version
-        run: |
-          cat main/project.godot | \
-            grep "config/version" | \
-            awk -F '[=]' '{print $2}' | \
-            tr -d '"' >> version.txt
-          echo "version-name=$(cat version.txt)" >> "$GITHUB_OUTPUT"
-          echo "Successfully extracted this version from project.godot: $(cat version.txt)"
+        run: awk -F= '/config\/version/ { gsub("\"", ""); print "version-name=" $2 }' project.godot >> $GITHUB_OUTPUT
 
   
-  compile-export-templates-web:
-    runs-on: "ubuntu-24.04"
-    needs: extract-build-version
-    env: 
-      SCONS_VERSION: "4.9.0"
-      EMSCRIPTEN_VERSION: "3.1.64"
-      BUILD_PROFILE_PATH: "${{ github.workspace }}/main/custom_profile.build"
+  # compile-export-templates-web:
+  #   runs-on: "ubuntu-24.04"
+  #   env: 
+  #     SCONS_VERSION: "4.9.0"
+  #     EMSCRIPTEN_VERSION: "3.1.64"
+  #     BUILD_PROFILE_PATH: "${{ github.workspace }}/main/custom_profile.build"
     
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: main
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         path: main
       
-      - uses: actions/checkout@v4
-        with:
-          repository: emscripten-core/emsdk
-          path: emsdk
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: emscripten-core/emsdk
+  #         path: emsdk
 
-      - uses: actions/checkout@v4
-        with:
-          repository: godotengine/godot
-          ref: ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE_NAME }}
-          path: godotengine
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: godotengine/godot
+  #         ref: ${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE_NAME }}
+  #         path: godotengine
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12.10"
-          cache: "pip"
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.12.10"
+  #         cache: "pip"
 
-      - name: Install SCons
-        run: |
-          pip install scons==${{ env.SCONS_VERSION }}
-          scons --version
+  #     - name: Install SCons
+  #       run: |
+  #         pip install scons==${{ env.SCONS_VERSION }}
+  #         scons --version
 
-      - name: Install emscripten
-        working-directory: emsdk
-        env:
-           EMSDK_VERBOSE: 0 
-        run: |
-          ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
-          ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }} --permanent
-          echo "${{ github.workspace }}/emsdk" >> "$GITHUB_PATH"
-          echo "${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+  #     - name: Install emscripten
+  #       working-directory: emsdk
+  #       env:
+  #          EMSDK_VERBOSE: 0 
+  #       run: |
+  #         ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
+  #         ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }} --permanent
+  #         echo "${{ github.workspace }}/emsdk" >> "$GITHUB_PATH"
+  #         echo "${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
-      - name: Compile custom web build template
-        working-directory: godotengine
-        run: |
-          scons platform=web \
-              target=template_release\
-              optimize=size\
-              use_volk=no\
-              use_closure_compiler=yes \
-              tools=no \
-              deprecated=no \
-              threads=no \
-              redirect_build_objects=no \
-              tests=no \
-              debug_symbols=no \
-              build_profile=${{ env.BUILD_PROFILE_PATH }}
-          mkdir -vp ../export_templates/
-          mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
-              ../export_templates/web_nothreads_release.zip
+  #     - name: Compile custom web build template
+  #       working-directory: godotengine
+  #       run: |
+  #         scons platform=web \
+  #             target=template_release\
+  #             optimize=size\
+  #             use_volk=no\
+  #             use_closure_compiler=yes \
+  #             tools=no \
+  #             deprecated=no \
+  #             threads=no \
+  #             redirect_build_objects=no \
+  #             tests=no \
+  #             debug_symbols=no \
+  #             build_profile=${{ env.BUILD_PROFILE_PATH }}
+  #         mkdir -vp ../export_templates/
+  #         mv -v bin/godot.web.template_release.wasm32.nothreads.zip \
+  #             ../export_templates/web_nothreads_release.zip
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: export_templates
-          path: ${{ github.workspace }}/export_templates/
-          retention-days: 1
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: export_templates
+  #         path: ${{ github.workspace }}/export_templates/
+  #         retention-days: 1
   
   export-web:
     runs-on: "ubuntu-24.04"
-    needs: compile-export-templates-web
+    # needs: compile-export-templates-web
     env:
       BUTLER_VERSION: "15.24.0"
       EXPORT_PRESET_NAME: "Web"
@@ -174,7 +165,7 @@ jobs:
     env:
       BUTLER_VERSION: "15.24.0"
       ITCH_USER: "pyramid-seph"
-      ITCH_PROJECT: "bucho-busca-comida-portobello-ex"
+      ITCH_PROJECT: "github-actions-test"
       BUILD_NUMBER: ${{ needs.extract-build-version.outputs.version-name }}
     
     steps:
@@ -192,20 +183,20 @@ jobs:
           zip -vr web.zip web
           ./butler push web.zip ${{ env.ITCH_USER }}/${{ env.ITCH_PROJECT }}:html --userversion ${{ env.BUILD_NUMBER }}
 
-  deploy-to-github-pages:
-    runs-on: ubuntu-24.04
-    needs: export-web
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+  # deploy-to-github-pages:
+  #   runs-on: ubuntu-24.04
+  #   needs: export-web
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
+  #   steps:
+  #     - name: Deploy to GitHub Pages
+  #       id: deployment
+  #       uses: actions/deploy-pages@v4
 
   # create-github-release:
   #   runs-on: "ubuntu-24.04"
-  #   needs: [deploy-to-itch, deploy-to-github-pages, extract-build-version]
+  #   needs: [deploy-to-itch, extract-build-version]
   #   env:
   #      BUILD_NUMBER: ${{ needs.extract-build-version.outputs.version-name }}
 
