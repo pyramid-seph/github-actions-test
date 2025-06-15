@@ -85,7 +85,7 @@ jobs:
   export-web:
     name: Build Godot project (web)
     runs-on: "ubuntu-24.04"
-    # needs: compile-export-templates-web
+    needs: compile-export-templates-web
     env:
       BUTLER_VERSION: "15.24.0"
       EXPORT_PRESET_NAME: "Web"
