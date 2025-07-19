@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://cgt67lwpgtbbf"]
+[gd_scene load_steps=3 format=3 uid="uid://cgt67lwpgtbbf"]
 
 [ext_resource type="PackedScene" uid="uid://c6okyjg1nnseb" path="res://player.tscn" id="1_wtcfe"]
+[ext_resource type="AudioStream" uid="uid://btwhw1slnemhr" path="res://art/audio/bgm.wav" id="2_0e48y"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -22,3 +23,7 @@ grow_vertical = 0
 size_flags_horizontal = 4
 size_flags_vertical = 0
 text = "CREDITS_THANKS_FOR_PLAYING"
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_0e48y")
+autoplay = true
